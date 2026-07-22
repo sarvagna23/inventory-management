@@ -1,0 +1,50 @@
+type Query {
+    products: [Product]
+    product(id: ID!): Product
+    productBySku(sku: String!): Product
+    productsByCategory(category: String!): [Product]
+    lowStockProducts: [Product]
+    searchProducts(keyword: String!): [Product]
+    suppliers: [Supplier]
+    supplier(id: ID!): Supplier
+    orders: [Order]
+    order(id: ID!): Order
+}
+
+type Mutation {
+    updateStock(id: ID!, stockLevel: Int!): Product
+}
+
+type Product {
+    id: ID!
+    name: String!
+    sku: String!
+    category: String
+    description: String
+    price: Float!
+    stockLevel: Int!
+    reorderThreshold: Int!
+    lowStock: Boolean!
+    supplier: Supplier
+    createdAt: String
+    updatedAt: String
+}
+
+type Supplier {
+    id: ID!
+    name: String!
+    email: String!
+    phone: String
+    address: String
+    leadTimeDays: Int
+    createdAt: String
+}
+
+type Order {
+    id: ID!
+    customerName: String!
+    customerEmail: String
+    status: String!
+    totalAmount: Float
+    createdAt: String
+}
