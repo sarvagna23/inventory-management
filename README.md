@@ -20,7 +20,7 @@ React frontend — instant low stock alert popup
 ## Screenshots
 
 ### Dashboard with Real-Time Alert
-![Dashboard](screenshots/dashboard-realtime-alert.png)
+![Dashboard](screenshot/dashboard-realtime-alert.png)
 
 ## Tech Stack
 
