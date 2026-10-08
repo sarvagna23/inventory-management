@@ -1,22 +1,25 @@
 # Inventory Management System 📦
 
-> Full-stack enterprise inventory management with React TypeScript frontend, Spring Boot Java backend, Node.js JWT middleware, GraphQL API, and Supabase real-time stock alerts.
+> Full-stack inventory management: React TypeScript frontend, Spring Boot (Java 21) backend with REST and GraphQL APIs, a Node.js JWT gateway, PostgreSQL, and Supabase real-time low-stock alerts.
 
 ## Architecture
 
 ```
 React TypeScript (port 3000)
         ↓ JWT token
-Node.js Middleware (port 4000) — JWT auth gateway
+Node.js middleware (port 4000): JWT auth gateway
         ↓ proxy
-Spring Boot Java (port 8080) — REST + GraphQL
+Spring Boot Java (port 8080): REST + GraphQL
         ↓
-PostgreSQL (port 5434) — primary database
+PostgreSQL (port 5434): primary database
         ↓ sync on stock update
-Supabase — real-time WebSocket broadcasting
+Supabase: real-time WebSocket broadcasting
         ↓
-React frontend — instant low stock alert popup
+React frontend: instant low-stock alert popup
 ```
+
+Spring Boot is designed to be reached through the gateway. The local setup also exposes port 8080 so GraphiQL can be opened directly.
+
 ## Screenshots
 
 ### Dashboard with Real-Time Alert
@@ -27,74 +30,77 @@ React frontend — instant low stock alert popup
 | Layer | Technology |
 |---|---|
 | Frontend | React TypeScript, Recharts, Supabase JS client |
-| Auth Gateway | Node.js, Express, JWT |
-| Backend | Spring Boot Java 21, Hibernate JPA |
-| API | REST endpoints + GraphQL (10 queries, 1 mutation) |
-| Database | PostgreSQL — 4 tables auto-created by Hibernate |
+| Auth gateway | Node.js, Express, JWT |
+| Backend | Spring Boot (Java 21), Hibernate JPA |
+| API | REST endpoints and GraphQL (10 queries, 1 mutation) |
+| Database | PostgreSQL, 4 tables auto-created by Hibernate |
 | Real-time | Supabase WebSocket subscriptions |
-| Containerization | Docker |
+| Containers | Docker (PostgreSQL via docker-compose) |
 
 ## Features
 
-**Dashboard:**
-- KPI cards — total products, low stock alerts, orders, revenue
+**Dashboard**
+- KPI cards: total products, low-stock alerts, orders, revenue
 - Products by category pie chart
 - Orders by status bar chart
-- Live low stock alerts table
+- Live low-stock alerts table
 
-**Products:**
+**Products**
 - Full CRUD with supplier relationship
 - Inline stock update with instant feedback
-- Low stock detection — red highlight when stock ≤ threshold
+- Low-stock detection: red highlight when stock is at or below the threshold
 - Search by name, SKU, or category
 
-**Real-time Alerts:**
-- Supabase WebSocket subscription on products table
-- Instant popup alert when stock drops below reorder threshold
-- Connection status indicator (green dot = connected)
+**Real-time alerts**
+- Supabase WebSocket subscription on the products table
+- Instant popup when stock drops below the reorder threshold
+- Connection status indicator (green dot means connected)
 - Dismissable alert cards with timestamp
 
-**Security:**
-- JWT authentication via Node.js middleware
+**Security**
+- JWT authentication through the Node.js gateway
 - 3 roles: ADMIN, MANAGER, VIEWER
-- All API and GraphQL routes protected
-- Spring Boot never receives unauthenticated requests
+- API and GraphQL routes sit behind the gateway
 
-**GraphQL:**
+**GraphQL**
 - 10 queries: products, product, productBySku, productsByCategory, lowStockProducts, searchProducts, suppliers, supplier, orders, order
 - 1 mutation: updateStock
 - GraphiQL UI at localhost:8080/graphiql
 
-## Setup
+## Run Locally
+
+Prerequisites: Docker, Java 21, Maven, Node.js, and a Supabase project (for real-time alerts).
+
+Docker runs only PostgreSQL. The backend, middleware and frontend run directly on your machine.
 
 ```bash
 git clone https://github.com/sarvagna23/inventory-management
 cd inventory-management
 
-# Start PostgreSQL
+# 1. PostgreSQL
 docker-compose up -d
 
-# Start Spring Boot backend
+# 2. Spring Boot backend (port 8080)
 cd backend
 mvn spring-boot:run
 
-# Start Node.js middleware
+# 3. Node.js middleware (port 4000)
 cd ../middleware
 node src/server.js
 
-# Start React frontend
+# 4. React frontend (port 3000)
 cd ../frontend
 npm install
 npm start
 ```
 
-**Environment variables needed in `frontend/.env`:**
+**`frontend/.env`**
 ```
 REACT_APP_SUPABASE_URL=your-supabase-url
 REACT_APP_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-**Add to `backend/src/main/resources/application.properties`:**
+**`backend/src/main/resources/application.properties`**
 ```
 supabase.url=your-supabase-url
 supabase.anon-key=your-anon-key
@@ -102,29 +108,65 @@ supabase.anon-key=your-anon-key
 
 ## Demo Credentials
 
+For local demo use only. Change them for any real deployment.
+
 | Username | Password | Role |
 |---|---|---|
 | admin | admin123 | ADMIN |
 | manager | manager123 | MANAGER |
 | viewer | viewer123 | VIEWER |
 
+ UNCOMMENT AFTER THE TESTS EXIST AND PASS, AND FILL IN THE VALUES
+
+## Testing
+
+End-to-end tests use Playwright and run against the local stack.
+
+| Suite | What it covers |
+|---|---|
+| auth | Login for each role, wrong-password error, role-based UI limits |
+| stock | Product list loads, search filters rows, quantity update |
+| alerts | Low-stock event shows an alert in the UI (WebSocket mocked) |
+
+    cd frontend
+    npx playwright install
+    npx playwright test
+
+Result: <N> tests passing in <seconds> s.
+
+The alerts test mocks the Supabase realtime WebSocket. It verifies that the UI handles an alert event correctly, not that Supabase delivers events.
+
+## Performance
+
+Measured with Lighthouse on a production build (npm run build, served locally), same machine and settings before and after.
+
+| Metric | Before | After |
+|---|---|---|
+| Performance score | <before> | <after> |
+| Largest Contentful Paint | <before> s | <after> s |
+| Initial JS bundle | <before> KB | <after> KB |
+
+Changes made: <list only what you actually changed>.
+
+
+
 ## Key Technical Decisions
 
 **Why Node.js middleware instead of Spring Security?**
-Node.js acts as an API gateway — validates JWT tokens before requests reach Spring Boot. This decouples auth from business logic and is the standard enterprise pattern for microservices.
+The Node.js gateway validates JWT tokens before requests reach Spring Boot. This keeps authentication separate from business logic, a common API gateway pattern for microservices.
 
 **Why GraphQL alongside REST?**
-REST for writes (order processing needs transactions and validation). GraphQL for reads (frontend requests exactly the fields it needs — no over-fetching).
+REST handles writes, where order processing needs transactions and validation. GraphQL handles reads, so the frontend requests exactly the fields it needs and avoids over-fetching.
 
 **Why Supabase for real-time?**
-Local PostgreSQL doesn't have WebSocket broadcasting. Supabase adds a real-time layer with zero infrastructure overhead — stock updates sync to Supabase, which instantly broadcasts to all connected React clients.
+Local PostgreSQL has no WebSocket broadcasting. Supabase adds a real-time layer with no extra infrastructure: stock updates sync to Supabase, which broadcasts them to all connected React clients.
 
 **Why `@Transactional` on createOrder?**
-Atomic order processing — validates stock for ALL items before deducting ANY. If one item is out of stock, the entire order rolls back. No partial data.
+Order processing is atomic. Stock is validated for all items before any is deducted, and if one item is out of stock the whole order rolls back, so there is no partial data.
 
 ## Author
 
 **Sai Sarvagna Beeram**
-MS Computer Science — Georgia State University (Dec 2026)
+MS Computer Science, Georgia State University (Dec 2026)
 GitHub: [sarvagna23](https://github.com/sarvagna23)
 LinkedIn: [saisarvagna023](https://linkedin.com/in/saisarvagna023)
